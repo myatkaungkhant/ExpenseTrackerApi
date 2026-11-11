@@ -1,0 +1,13 @@
+Author identity unknown
+
+*** Please tell me who you are.
+
+Run
+
+  git config --global user.email "myatkaung2021@gmail.com"
+  git config --global user.name "Myat Kaung Khant"
+
+to set your account's default identity.
+Omit --global to set the identity only in this repository.
+
+fatal: unable to auto-detect email address (got 'root@65720fb2bf73.(none)')
