@@ -25,7 +25,6 @@ var expenses = new List<Expenses>
 // {
 //     return Results.Ok(expenses);
 // });
-#pragma warning restore ASP0022 // Route conflict detected between route handlers
 
 // Get expenses by ID
 app.MapGet("api/expenses/{id}",(int id) =>
