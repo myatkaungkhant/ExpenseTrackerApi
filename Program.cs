@@ -44,12 +44,47 @@ app.MapGet("api/expenses/{id}",(int id) =>
 });
 
 // Filter expenses by category
-app.MapGet("api/expenses",(string? category) =>
+app.MapGet("api/expenses",
+            (string? category,int page = 1, int pageSize = 10,
+            string? sortBy = "Id",string? sortOrder = "asc") =>
 {
-    IEnumerable<Expenses> filterExpenses = expenses;
+    if (page < 1)
+    {
+        return Results.BadRequest(
+            new {error = "Page must be at least 1."}
+        );
+    }
+
+    if (pageSize <1 || pageSize > 100)
+    {
+        return Results.BadRequest(
+            new {error = "PageSize must be between 1 and 100."}
+        );
+    }
+
+    var sortField = (sortBy ?? "Id").Trim().ToLowerInvariant();
+    var order = (sortOrder ?? "asc").Trim().ToLowerInvariant();
+
+    if (sortField != "id" &&
+        sortField != "title" &&
+        sortField != "amount")
+    {
+        return Results.BadRequest(
+            new {error = "SortBy must be id,title or amount."}
+        );
+    }
+
+    if (order != "asc" && order != "desc")
+    {
+        return Results.BadRequest(
+            new {error = "SortOrder must be asc or desc."}
+        );
+    }
+
+    IEnumerable<Expenses> query = expenses;
     if (!string.IsNullOrWhiteSpace(category))
     {
-        filterExpenses = filterExpenses.Where(
+        query = query.Where(
             e => string.Equals(
                 e.Category,
                 category,
@@ -58,7 +93,46 @@ app.MapGet("api/expenses",(string? category) =>
         );
     }
 
-    return Results.Ok(filterExpenses.ToList());
+    var totalCount = query.Count();
+
+    if (sortField == "amount")
+    {
+        query = order == "asc"
+        ? query.OrderBy(e => e.Amount)
+        : query.OrderByDescending(e => e.Amount);
+    }
+    else if (sortField == "title")
+    {
+        query = order == "asc"
+        ? query.OrderBy(e => e.Title)
+        : query.OrderByDescending(e => e.Title);
+    }
+    else if (sortField == "id")
+    {
+        query = order == "asc"
+        ? query.OrderBy(e => e.Id)
+        : query.OrderByDescending(e => e.Id);
+    }
+
+    var pageExpenses = query
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .ToList();
+
+    return Results.Ok(
+        new
+        {
+            page,
+            pageSize,
+            totalCount,
+            totalPages = (int)Math.Ceiling(
+                totalCount / (double) pageSize
+            ),
+            sortBy = sortField,
+            sortOrder = order,
+            data = pageExpenses
+        }
+    );
 });
 // Post a new expense
 app.MapPost("api/expenses", (Expenses expense) =>
