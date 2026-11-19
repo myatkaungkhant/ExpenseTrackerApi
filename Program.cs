@@ -1,6 +1,15 @@
+using ExpenseTrackerApi.Data;
 using ExpenseTrackerApi.Models;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddDbContext<ExpenseDbContext> (options => 
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+    )
+);
 
 var app = builder.Build();
 
@@ -27,20 +36,16 @@ var expenses = new List<Expenses>
 // });
 
 // Get expenses by ID
-app.MapGet("api/expenses/{id}",(int id) =>
+app.MapGet("api/expenses/{id}",async(int id,ExpenseDbContext db) =>
 {
-    var expense = expenses.FirstOrDefault(e => e.Id == id);
-    IResult result;
+    var expense = await db.Expenses.FirstOrDefaultAsync(e => e.Id == id);
     if (expense == null)
     {
-        result = Results.NotFound(
+        return Results.NotFound(
             new {error = "Expense not found"}
         );
-    }else
-    {
-        result = Results.Ok(expense);
     }
-    return result;
+    return Results.Ok(expense);
 });
 
 // Filter expenses by category
@@ -135,7 +140,7 @@ app.MapGet("api/expenses",
     );
 });
 // Post a new expense
-app.MapPost("api/expenses", (Expenses expense) =>
+app.MapPost("api/expenses", async(Expenses expense,ExpenseDbContext db) =>
 {
     // Add Rules
     // Rule 1: Title should not be empty
@@ -170,9 +175,10 @@ app.MapPost("api/expenses", (Expenses expense) =>
         ); 
     }
 
-    expense.Id = expenses.Count == 0 ? 1 : expenses.Max(e => e.Id) + 1;
+    db.Expenses.Add(expense);
 
-    expenses.Add(expense);
+    await db.SaveChangesAsync();
+
     return Results.Created(
         $"api/expenses/{expense.Id}",expense
     );

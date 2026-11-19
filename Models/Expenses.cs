@@ -9,6 +9,7 @@ public class Expenses
     [Required(AllowEmptyStrings = false)]
     public string Title {get; set;} = string.Empty;
 
+    [Required]
     [Range(0.01,double.MaxValue)]
     public decimal? Amount {get; set;}
 
